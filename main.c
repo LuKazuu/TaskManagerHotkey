@@ -6,7 +6,6 @@
 #define HOTKEY_ID 1
 #define CONFIG_FILE "config.ini"
 
-// Parse key string like "F12", "A", "z", "f1"
 UINT ParseKeyString(const char* key) {
     char upper[4] = {0};
     strncpy(upper, key, sizeof(upper) - 1);
@@ -19,15 +18,22 @@ UINT ParseKeyString(const char* key) {
     } else if (strlen(upper) == 1 && isalpha(upper[0])) {
         return upper[0];
     }
-
-    printf("Invalid key in config: %s\n", key);
     return 0;
 }
 
-UINT LoadHotkey(UINT* vk) {
-    char keystr[16] = {0};
-    GetPrivateProfileString("Hotkey", "key", "F12", keystr, sizeof(keystr), CONFIG_FILE);
-    *vk = ParseKeyString(keystr);
+UINT LoadHotkey(UINT* vk, char* keyBuffer, int bufferSize) {
+    char configPath[MAX_PATH];
+    GetModuleFileName(NULL, configPath, MAX_PATH);
+
+    char* lastSlash = strrchr(configPath, '\\');
+    if (lastSlash != NULL) {
+        strcpy(lastSlash + 1, CONFIG_FILE);
+    } else {
+        strcpy(configPath, CONFIG_FILE);
+    }
+
+    GetPrivateProfileString("Hotkey", "key", "F12", keyBuffer, bufferSize, configPath);
+    *vk = ParseKeyString(keyBuffer);
     return (*vk != 0);
 }
 
@@ -51,15 +57,19 @@ void LaunchOrActivateTaskmgr() {
 
 int main() {
     UINT vk;
-    if (!LoadHotkey(&vk)) {
+    char keyString[16] = {0};
+
+    if (!LoadHotkey(&vk, keyString, sizeof(keyString))) {
+        printf("Failed to load or parse hotkey '%s' from config.ini\n", keyString);
         return 1;
     }
 
     if (!RegisterHotKey(NULL, HOTKEY_ID, 0, vk)) {
+        printf("Failed to register hotkey '%s'. It may be in use by another program.\n", keyString);
         return 1;
     }
 
-    printf("Hotkey registered. Press it to launch Task Manager. Close this window to exit.\n");
+    printf("Hotkey '%s' registered successfully.\nPress it to launch Task Manager. Close this window to exit.\n", keyString);
 
     MSG msg;
     while (GetMessage(&msg, NULL, 0, 0)) {
