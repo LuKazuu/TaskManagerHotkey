@@ -38,9 +38,14 @@ UINT LoadHotkey(UINT* vk, char* keyBuffer, int bufferSize) {
 }
 
 void LaunchOrActivateTaskmgr() {
+    HWND self = GetConsoleWindow();
     HWND hwnd = FindWindow("TaskManagerWindow", NULL);
+
     if (!hwnd) {
         hwnd = FindWindow(NULL, "Task Manager");
+        if (hwnd == self) {
+            hwnd = NULL;
+        }
     }
 
     if (hwnd) {
@@ -49,6 +54,8 @@ void LaunchOrActivateTaskmgr() {
         } else {
             ShowWindow(hwnd, SW_SHOW);
         }
+        
+        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
         SetForegroundWindow(hwnd);
     } else {
         WinExec("taskmgr.exe", SW_SHOWNORMAL);
