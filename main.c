@@ -38,15 +38,7 @@ UINT LoadHotkey(UINT* vk, char* keyBuffer, int bufferSize) {
 }
 
 void LaunchOrActivateTaskmgr() {
-    HWND self = GetConsoleWindow();
     HWND hwnd = FindWindow("TaskManagerWindow", NULL);
-
-    if (!hwnd) {
-        hwnd = FindWindow(NULL, "Task Manager");
-        if (hwnd == self) {
-            hwnd = NULL;
-        }
-    }
 
     if (hwnd) {
         if (IsIconic(hwnd)) {
