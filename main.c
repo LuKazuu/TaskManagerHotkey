@@ -2,9 +2,15 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <tlhelp32.h>
 
 #define HOTKEY_ID 1
 #define CONFIG_FILE "config.ini"
+
+typedef struct {
+    HWND hwnd;
+    DWORD pid;
+} EnumData;
 
 UINT ParseKeyString(const char* key) {
     char upper[4] = {0};
@@ -37,20 +43,44 @@ UINT LoadHotkey(UINT* vk, char* keyBuffer, int bufferSize) {
     return (*vk != 0);
 }
 
-BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
-    char className[256];
-    if (GetClassName(hwnd, className, sizeof(className))) {
-        if (strcmp(className, "TaskManagerWindow") == 0) {
-            *(HWND*)lParam = hwnd;
-            return FALSE; 
+DWORD GetProcessIdByName(const char* processName) {
+    PROCESSENTRY32 entry;
+    entry.dwSize = sizeof(PROCESSENTRY32);
+    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+
+    if (Process32First(snapshot, &entry)) {
+        while (Process32Next(snapshot, &entry)) {
+            if (_stricmp(entry.szExeFile, processName) == 0) {
+                CloseHandle(snapshot);
+                return entry.th32ProcessID;
+            }
         }
+    }
+    CloseHandle(snapshot);
+    return 0;
+}
+
+BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
+    EnumData* data = (EnumData*)lParam;
+    DWORD windowPid = 0;
+    GetWindowThreadProcessId(hwnd, &windowPid);
+
+    if (data->pid == windowPid && GetParent(hwnd) == NULL && IsWindow(hwnd)) {
+        data->hwnd = hwnd;
+        return FALSE;
     }
     return TRUE;
 }
 
 void LaunchOrActivateTaskmgr() {
     HWND hwnd = NULL;
-    EnumWindows(EnumWindowsProc, (LPARAM)&hwnd);
+    DWORD taskmgrPid = GetProcessIdByName("taskmgr.exe");
+
+    if (taskmgrPid != 0) {
+        EnumData data = { NULL, taskmgrPid };
+        EnumWindows(EnumWindowsProc, (LPARAM)&data);
+        hwnd = data.hwnd;
+    }
 
     if (hwnd) {
         if (IsIconic(hwnd)) {
