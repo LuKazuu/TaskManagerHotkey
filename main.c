@@ -37,8 +37,20 @@ UINT LoadHotkey(UINT* vk, char* keyBuffer, int bufferSize) {
     return (*vk != 0);
 }
 
+BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
+    char className[256];
+    if (GetClassName(hwnd, className, sizeof(className))) {
+        if (strcmp(className, "TaskManagerWindow") == 0) {
+            *(HWND*)lParam = hwnd;
+            return FALSE; 
+        }
+    }
+    return TRUE;
+}
+
 void LaunchOrActivateTaskmgr() {
-    HWND hwnd = FindWindow("TaskManagerWindow", NULL);
+    HWND hwnd = NULL;
+    EnumWindows(EnumWindowsProc, (LPARAM)&hwnd);
 
     if (hwnd) {
         if (IsIconic(hwnd)) {
