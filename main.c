@@ -91,6 +91,7 @@ void LaunchOrActivateTaskmgr() {
         
         SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
         SetForegroundWindow(hwnd);
+        SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
     } else {
         WinExec("taskmgr.exe", SW_SHOWNORMAL);
     }
